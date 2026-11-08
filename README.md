@@ -52,7 +52,7 @@ failed S3 upload never touches the local mirror.
 ## Quick start with Docker Compose
 
 ```bash
-git clone https://github.com/<owner>/git-keepr.git && cd git-keepr   # use the real owner
+git clone https://github.com/amirkode/git-keepr.git && cd git-keepr
 cp config.example.yaml config.yaml
 cp .env.example .env
 # edit config.yaml (repositories, credentials, storage) and .env (PATs, S3 keys)
@@ -88,7 +88,22 @@ Notes:
   ```
 
   NFS or SMB shares that squash ownership, or don't support POSIX permissions and `flock`, may not work. Try `sync --once` first.
-- Once a release has been published, a prebuilt image is available at `ghcr.io/<owner>/git-keepr:<version>`. Take the real owner and version from the Releases page. Until then, build locally as above.
+### Using the prebuilt image
+
+Releases publish a multi-architecture image (amd64, arm64) to `ghcr.io/amirkode/git-keepr`. To skip the local build, use `compose.ghcr.yaml` instead (same `config.yaml` and `.env`):
+
+```bash
+docker compose -f compose.ghcr.yaml up -d
+docker compose -f compose.ghcr.yaml logs -f
+```
+
+It tracks `latest` by default. To pin a release, set `GIT_KEEPR_VERSION`:
+
+```bash
+GIT_KEEPR_VERSION=0.1.0 docker compose -f compose.ghcr.yaml up -d
+```
+
+Upgrade with `docker compose -f compose.ghcr.yaml pull && docker compose -f compose.ghcr.yaml up -d`. The data volume is kept. Use one compose file or the other for a given deployment; both create a container named `git-keepr`.
 
 ## Creating the GitHub token
 

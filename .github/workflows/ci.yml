@@ -75,6 +75,10 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Validate compose.ghcr.yaml
+        run: |
+          touch .env config.yaml
+          docker compose -f compose.ghcr.yaml config -q
       - name: Smoke test (non-root, read-only rootfs, fresh volume, graceful stop)
         run: tests/deploy/docker-smoke.sh
       - name: Verify the multi-architecture build (not pushed)
