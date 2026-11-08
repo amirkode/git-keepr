@@ -1,0 +1,22 @@
+services:
+  git-keepr:
+    build:
+      context: .
+    image: git-keepr:local
+    container_name: git-keepr
+    restart: unless-stopped
+    init: true
+    command: ["serve", "--config", "/etc/git-keepr/config.yaml"]
+    env_file:
+      - .env
+    volumes:
+      - ./config.yaml:/etc/git-keepr/config.yaml:ro
+      - git_keepr_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  git_keepr_data:

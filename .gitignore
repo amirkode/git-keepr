@@ -1,0 +1,20 @@
+# secrets and local configuration
+.env
+.env.*
+!.env.example
+config.yaml
+credentials.env
+
+# runtime data and mirrors
+/data/
+*.git/
+*.bundle
+
+# build output
+/dist/
+/git-keepr
+
+# editor / OS
+.idea/
+.vscode/
+.DS_Store

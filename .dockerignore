@@ -1,0 +1,10 @@
+.git
+.github
+.env
+.env.*
+config.yaml
+dist
+data
+*.md
+!README.md
+tests

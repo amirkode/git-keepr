@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Read-only by default; no job below needs more and nothing is published from CI.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Format, vet, tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then echo "gofmt needed on:"; echo "$unformatted"; exit 1; fi
+      - name: go vet
+        run: go vet ./...
+      - name: Unit and integration tests
+        # Local temporary Git repositories, an in-process fake S3 and a black-hole proxy:
+        # no PATs, no cloud account, no external endpoints.
+        run: go test ./...
+      - name: Race-enabled tests
+        run: go test -race ./...
+      - name: shellcheck
+        run: shellcheck scripts/install.sh tests/deploy/*.sh
+      - name: Build binary
+        run: |
+          CGO_ENABLED=0 go build -trimpath -o dist/git-keepr ./cmd/git-keepr
+          ./dist/git-keepr version
+
+  installer:
+    name: Installer idempotency (container, root)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: systemd unit syntax
+        run: systemd-analyze verify deploy/git-keepr.service 2>&1 | grep -v 'is not executable' || true
+      - name: Build Linux binaries
+        run: make dist
+      - name: Run installer tests
+        run: tests/deploy/run-install-test.sh
+
+  docker:
+    name: Docker image and Compose smoke test (no push)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build image (amd64, loaded for the smoke test)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          push: false
+          tags: git-keepr:local
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test (non-root, read-only rootfs, fresh volume, graceful stop)
+        run: tests/deploy/docker-smoke.sh
+      - name: Verify the multi-architecture build (not pushed)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: false
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha

@@ -1,0 +1,37 @@
+[Unit]
+Description=git-keepr - self-hosted Git backup service
+Documentation=https://github.com/amirkode/git-keepr
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=git-keepr
+Group=git-keepr
+# Secrets (PATs, S3 keys) live here: root-owned, mode 0600. systemd reads the file;
+# the values become environment variables of the service process only.
+EnvironmentFile=-/etc/git-keepr/credentials.env
+ExecStart=/usr/local/bin/git-keepr serve --config /etc/git-keepr/config.yaml
+WorkingDirectory=/var/lib/git-keepr
+Restart=on-failure
+RestartSec=10
+# Exit code 3 = invalid configuration or missing credentials: do not restart-loop.
+RestartPreventExitStatus=3
+# SIGTERM stops running git processes and the scheduler; allow time for a clean exit.
+TimeoutStopSec=60
+UMask=0077
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/git-keepr
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

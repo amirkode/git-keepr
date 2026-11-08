@@ -1,0 +1,39 @@
+version: 1
+
+scheduler:
+  default_interval: 6h
+  max_concurrency: 2
+  sync_on_start: true
+
+credentials:
+  personal:
+    type: github_pat
+    token_env: GITHUB_PAT_PERSONAL
+  work:
+    type: github_pat
+    token_env: GITHUB_PAT_WORK
+
+repositories:
+  - id: github/example/backend
+    url: https://github.com/example/backend.git
+    credential: personal
+    interval: 1h
+  - id: github/example/frontend
+    url: https://github.com/example/frontend.git
+    credential: personal
+  # Another owner may need a different fine-grained PAT.
+  # - id: github/another-owner/private
+  #   url: https://github.com/another-owner/private.git
+  #   credential: work
+
+storage:
+  local:
+    root: /data
+  s3:
+    enabled: true
+    bucket: git-keepr-backups
+    prefix: repositories/
+    region: auto
+    # Omit endpoint for AWS S3; use your S3-compatible endpoint for R2/MinIO.
+    endpoint: https://ACCOUNT_ID.r2.cloudflarestorage.com
+    path_style: true
