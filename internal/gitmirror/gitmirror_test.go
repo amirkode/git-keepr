@@ -357,10 +357,9 @@ func TestAuthenticatedCloneAndFetchOverHTTP(t *testing.T) {
 	}
 	filepath.WalkDir(dest, func(p string, d os.DirEntry, err error) error {
 		if err == nil && d.Type().IsRegular() {
-			if info, _ := d.Info(); info.Size() < 1<<20 {
-				if b, _ := os.ReadFile(p); strings.Contains(string(b), token) {
-					t.Errorf("token found on disk in %s", p)
-				}
+			// git may remove temporary files while we walk; a vanished file is not a finding.
+			if b, err := os.ReadFile(p); err == nil && strings.Contains(string(b), token) {
+				t.Errorf("token found on disk in %s", p)
 			}
 		}
 		return nil
