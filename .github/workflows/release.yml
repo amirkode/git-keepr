@@ -107,18 +107,13 @@ jobs:
           flags=()
           case "$tag" in *-*) flags+=(--prerelease) ;; esac
           cat > notes.md <<NOTES
-          ## git-keepr ${tag}
+          Binaries for Linux and macOS (amd64, arm64) and a container image:
+          \`ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/git-keepr:${version}\`
 
-          Standalone Linux and macOS binaries (static, \`CGO_ENABLED=0\`) and a multi-architecture container image.
-
-          - Container: \`ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/git-keepr:${version}\`
-          - Verify downloads: \`sha256sum -c checksums.txt\`
-          - Linux hosts: extract the archive and run \`sudo scripts/install.sh --binary ./git-keepr --config ./config.yaml\`
-
-          Scope reminder: git-keepr backs up Git history reachable from fetched refs. Git LFS payloads, issues, PRs, releases, wikis and submodule contents are not included.
+          Verify downloads with \`sha256sum -c checksums.txt\`.
           NOTES
           gh release create "$tag" dist/git-keepr_*.tar.gz dist/checksums.txt \
-            --title "git-keepr ${tag}" --notes-file notes.md --generate-notes --verify-tag "${flags[@]}"
+            --title "${tag}" --notes-file notes.md --verify-tag "${flags[@]}"
 
   docker:
     name: Publish container image (GHCR)
